@@ -198,7 +198,6 @@ function checkColdWave(data) {
                                     - A (${CITIES.A.name}): ${dateA} 降溫 ${dropA.toFixed(1)}°C (從 ${tempsA[i].toFixed(1)}°C 降至 ${tempsA[i+1].toFixed(1)}°C)<br>
                                     - B (${CITIES.B.name}): ${dateB} 降溫 ${dropB.toFixed(1)}°C (延遲 ${j - i} 天) (從 ${tempsB[j].toFixed(1)}°C 降至 ${tempsB[j+1].toFixed(1)}°C)<br>
                                     - C (${CITIES.C.name}): ${dateC} 降溫 ${dropC.toFixed(1)}°C (延遲 ${k - j} 天) (從 ${tempsC[k].toFixed(1)}°C 降至 ${tempsC[k+1].toFixed(1)}°C)<br>
-                                    - D (${CITIES.D.name}): ${dateC} 降溫 ${dropC.toFixed(1)}°C (延遲 ${k - j} 天) (從 ${tempsD[k].toFixed(1)}°C 降至 ${tempsD[k+1].toFixed(1)}°C)<br>
                                     <small><em>預計台北在 C 降溫後 1-3 天可能受影響。</em></small>
                                 </li>
                             `;
@@ -216,12 +215,12 @@ function checkColdWave(data) {
 
     if (isWarning) {
         alertBox.className = 'alert-box alert-warning';
-        alertBox.innerHTML = '🚨 **強烈警告：預測到 A → B → C 連鎖降溫模式！** 請留意台北地區的寒流預報。';
+        alertBox.innerHTML = '🚨🚨🚨**台北地區將有寒流預報。🚨🚨🚨';
         detailsBox.innerHTML = detailsHTML;
     } else {
         alertBox.className = 'alert-box alert-success';
-        alertBox.innerHTML = '✅ **目前無 A → B → C 連鎖降溫模式跡象。**';
-        detailsBox.innerHTML = '<p style="text-align: center;">在未來 10 天預報中，未發現符合連鎖降溫條件的事件。</p>';
+        alertBox.innerHTML = '✅ **SAFE!!! 目前無連鎖降溫模式跡象。 **✅';
+        detailsBox.innerHTML = '<p style="text-align: center;">在未來 16 天預報中，未發現符合連鎖降溫條件的事件。</p>';
     }
 }
 
