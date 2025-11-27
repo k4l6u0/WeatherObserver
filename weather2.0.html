@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寒流預警分析工具 (16天版)</title>
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 Chart.js 數據標籤插件 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    <style>
+        body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #7f8c8d; font-size: 0.95rem; margin-bottom: 25px; }
+        
+        /* 控制面板樣式 */
+        .controls { display: flex; flex-wrap: wrap; gap: 20px; background: #eef2f3; padding: 20px; border-radius: 10px; margin-bottom: 20px; align-items: flex-end; justify-content: center; }
+        .control-group { display: flex; flex-direction: column; }
+        label { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #34495e; }
+        input { padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; width: 80px; font-size: 16px; text-align: center; }
+        button { padding: 10px 25px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; height: 42px; transition: background 0.2s; }
+        button:hover { background-color: #2980b9; }
+
+        /* 狀態與日誌區 */
+        #result-area { margin-top: 20px; }
+        .alert-box { padding: 20px; border-radius: 8px; margin-bottom: 20px; display: none; line-height: 1.6; }
+        .alert-danger { background-color: #fadbd8; color: #c0392b; border: 1px solid #f5b7b1; }
+        .alert-success { background-color: #d4efdf; color: #1e8449; border: 1px solid #a9dfbf; }
+        .log-item { background: #fff; border-left: 4px solid #e74c3c; padding: 15px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        /* 圖表區 */
+        .chart-container { position: relative; height: 500px; width: 100%; margin-top: 40px; }
+        .loading { text-align: center; display: none; color: #7f8c8d; font-weight: bold; margin: 20px 0; }
+        
+        /* 載入動畫小圈圈 */
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #3498db; animation: spin 1s ease-in-out infinite; vertical-align: middle; margin-right: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>❄️ 寒流路徑預警儀表板</h1>
+    <div class="subtitle">預測範圍：未來 16 天 | 資料來源：Open-Meteo | 監測路徑：雅庫次克 ➔ 北京 ➔ 上海 ➔ 台北</div>
+
+    <!-- 設定區 -->
+    <div class="controls">
+        <div class="control-group">
+            <label>氣溫驟降門檻 (°C)</label>
+            <input type="number" id="dropThreshold" value="5" min="1">
+        </div>
+        <div class="control-group">
+            <label>傳導延遲 (最少天)</label>
+            <input type="number" id="lagMin" value="1" min="0">
+        </div>
+        <div class="control-group">
+            <label>傳導延遲 (最多天)</label>
+            <input type="number" id="lagMax" value="3" min="1">
+        </div>
+        <button onclick="analyzeWeather()">🚀 開始分析</button>
+    </div>
+
+    <div id="loading" class="loading"><span class="spinner"></span>正在連線氣象衛星抓取 16 天資料...</div>
+
+    <!-- 結果顯示區 -->
+    <div id="result-area">
+        <div id="statusBox" class="alert-box"></div>
+        <div id="logContent"></div>
+    </div>
+
+    <!-- 圖表區 -->
+    <div class="chart-container">
+        <canvas id="weatherChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // 註冊數據標籤插件
+    Chart.register(ChartDataLabels);
+
+    // 城市座標與顏色定義
+    const cities = [
+        { id: 'A', name: '雅庫次克 (A)', lat: 62.03, lon: 129.74, color: '#2980b9', bg: '#d4e6f1' }, // 藍
+        { id: 'B', name: '北京 (B)', lat: 39.90, lon: 116.40, color: '#e67e22', bg: '#fadbd8' },     // 橘
+        { id: 'C', name: '上海 (C)', lat: 31.23, lon: 121.47, color: '#27ae60', bg: '#d5f5e3' },    // 綠
+        { id: 'D', name: '台北 (D)', lat: 25.03, lon: 121.56, color: '#c0392b', bg: '#fdedec' }     // 紅
+    ];
+
+    let myChart = null;
+
+    async function analyzeWeather() {
+        const threshold = parseFloat(document.getElementById('dropThreshold').value);
+        const lagMin = parseInt(document.getElementById('lagMin').value);
+        const lagMax = parseInt(document.getElementById('lagMax').value);
+        
+        // UI 重置
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('statusBox').style.display = 'none';
+        document.getElementById('logContent').innerHTML = '';
+        
+        try {
+            // 抓取 16 天資料 (forecast_days=16)
+            const promises = cities.map(city => {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=temperature_2m_min&timezone=auto&forecast_days=16`;
+                return fetch(url).then(res => res.json());
+            });
+
+            const results = await Promise.all(promises);
+            document.getElementById('loading').style.display = 'none';
+
+            // 整理數據
+            const weatherData = {};
+            const dates = results[0].daily.time.map(date => date.substring(5)); // 只留 MM-DD
+
+            results.forEach((data, index) => {
+                const cityId = cities[index].id;
+                weatherData[cityId] = data.daily.temperature_2m_min;
+            });
+
+            // 繪製圖表
+            drawChart(dates, weatherData);
+
+            // 核心邏輯：判斷連鎖反應
+            let alerts = [];
+            const dataA = weatherData['A'];
+            const dataB = weatherData['B'];
+            const dataC = weatherData['C'];
+            
+            // 計算掃描範圍 (資料總長度 - 最大延遲所需天數 - 1天計算降溫)
+            const maxScanDay = dataA.length - (lagMax * 2) - 1;
+
+            for (let i = 0; i < maxScanDay; i++) {
+                let dropA = dataA[i] - dataA[i+1];
+
+                if (dropA >= threshold) {
+                    for (let d1 = lagMin; d1 <= lagMax; d1++) {
+                        let idxB = i + d1;
+                        // 邊界檢查
+                        if (idxB >= dataB.length - 1) continue;
+                        
+                        let dropB = dataB[idxB] - dataB[idxB+1];
+
+                        if (dropB >= threshold) {
+                            for (let d2 = lagMin; d2 <= lagMax; d2++) {
+                                let idxC = idxB + d2;
+                                // 邊界檢查
+                                if (idxC >= dataC.length - 1) continue;
+
+                                let dropC = dataC[idxC] - dataC[idxC+1];
+
+                                if (dropC >= threshold) {
+                                    alerts.push({
+                                        msg: `
+                                            <div style="font-size:1.1em; font-weight:bold; margin-bottom:5px;">🥶 寒流路徑確認 (觸發點: ${dates[i]})</div>
+                                            1. <span style="color:${cities[0].color}">A-雅庫次克</span>: ${dates[i]} 驟降 <b>${dropA.toFixed(1)}°C</b><br>
+                                            2. <span style="color:${cities[1].color}">B-北京</span> (${d1}天後): ${dates[idxB]} 驟降 <b>${dropB.toFixed(1)}°C</b><br>
+                                            3. <span style="color:${cities[2].color}">C-上海</span> (${d2}天後): ${dates[idxC]} 驟降 <b>${dropC.toFixed(1)}°C</b><br>
+                                            👉 <b>台北 (D) 需在 ${dates[idxC]} 之後嚴加戒備！</b>
+                                        `
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 顯示結果
+            const statusBox = document.getElementById('statusBox');
+            const logContent = document.getElementById('logContent');
+            
+            if (alerts.length > 0) {
+                statusBox.className = 'alert-box alert-danger';
+                statusBox.innerHTML = `⚠️ <b>警報發布！</b> 偵測到 <b>${alerts.length}</b> 條極地冷空氣南下路徑。`;
+                statusBox.style.display = 'block';
+                
+                alerts.forEach(alert => {
+                    const div = document.createElement('div');
+                    div.className = 'log-item';
+                    div.innerHTML = alert.msg;
+                    logContent.appendChild(div);
+                });
+            } else {
+                statusBox.className = 'alert-box alert-success';
+                statusBox.innerHTML = `✅ <b>目前安全</b>：未來 16 天內，未偵測到符合「單日降溫 > ${threshold}°C」且具備連鎖反應的寒流路徑。`;
+                statusBox.style.display = 'block';
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("資料抓取失敗，請稍後再試或檢查網路。");
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function drawChart(labels, dataMap) {
+        const ctx = document.getElementById('weatherChart').getContext('2d');
+        
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        const datasets = cities.map(city => ({
+            label: city.name,
+            data: dataMap[city.id],
+            borderColor: city.color,
+            backgroundColor: city.color,
+            borderWidth: 2,
+            tension: 0.3, // 線條平滑度
+            pointRadius: 4,
+            fill: false,
+            datalabels: {
+                align: 'top',
+                anchor: 'center',
+                offset: 4,
+                color: city.color,
+                font: {
+                    weight: 'bold',
+                    size: 11
+                },
+                formatter: function(value) {
+                    return Math.round(value); // 顯示整數，避免太擁擠
+                }
+            }
+        }));
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 20, right: 20, left: 10, bottom: 10 }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        title: { display: true, text: '最低氣溫 (°C)' },
+                        grid: { color: '#f0f0f0' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    title: { display: true, text: '未來 16 天四城市氣溫趨勢圖', font: { size: 16 } },
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        enabled: true, // 保留滑鼠懸停提示
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
