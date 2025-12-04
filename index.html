@@ -3,44 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>寒流分層預警儀表板 (週末標示版)</title>
+    <title>寒流雙路徑整合儀表板 (統一軸線版)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
     <style>
-        body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h1 { text-align: center; color: #2c3e50; margin: 0 0 5px 0; }
-        .subtitle { text-align: center; color: #7f8c8d; font-size: 0.9rem; margin-bottom: 20px; }
+        body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.08); }
         
-        /* 控制區 */
-        .controls { display: flex; flex-wrap: wrap; gap: 15px; background: #eceff1; padding: 15px; border-radius: 8px; margin-bottom: 20px; align-items: flex-end; justify-content: center; }
+        h1 { text-align: center; color: #2c3e50; margin: 0 0 10px 0; }
+        .subtitle { text-align: center; color: #546e7a; font-size: 0.95rem; margin-bottom: 25px; line-height: 1.6; }
+        
+        /* 顏色標記說明 */
+        .badge { padding: 3px 8px; border-radius: 4px; color: white; font-weight: bold; font-size: 0.85em; margin: 0 4px; }
+        .badge-west { background-color: #673AB7; } /* 紫色系 */
+        .badge-east { background-color: #1976D2; } /* 藍色系 */
+
+        /* 控制面板 */
+        .controls { display: flex; flex-wrap: wrap; gap: 15px; background: #eceff1; padding: 20px; border-radius: 8px; margin-bottom: 20px; align-items: flex-end; justify-content: center; }
         .control-group { display: flex; flex-direction: column; }
-        label { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #455a64; }
-        input { padding: 8px; border: 1px solid #cfd8dc; border-radius: 4px; width: 70px; text-align: center; }
-        button { padding: 8px 20px; background-color: #37474f; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; height: 36px; }
-        button:hover { background-color: #263238; }
+        label { font-size: 13px; font-weight: 700; margin-bottom: 5px; color: #37474f; }
+        input { padding: 8px; border: 1px solid #cfd8dc; border-radius: 4px; width: 70px; text-align: center; font-weight: bold; }
+        button { padding: 8px 25px; background-color: #263238; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; height: 36px; transition: 0.2s; }
+        button:hover { background-color: #000; }
 
         /* 警報區 */
         #result-area { margin-bottom: 20px; }
-        .alert-box { padding: 15px; border-radius: 6px; margin-bottom: 10px; display: none; font-size: 0.95rem; }
-        .alert-danger { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
-        .alert-success { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-        .log-item { background: #fff; border-left: 4px solid #d32f2f; padding: 12px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); line-height: 1.5; }
+        .alert-box { padding: 15px; border-radius: 6px; margin-bottom: 10px; display: none; font-size: 0.95rem; border-left: 5px solid; }
+        .alert-danger { background-color: #fff3e0; color: #bf360c; border-color: #ff5722; }
+        .alert-success { background-color: #e8f5e9; color: #2e7d32; border-color: #4caf50; }
         
+        .log-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .log-col h4 { margin: 0 0 10px 0; text-align: center; padding-bottom: 5px; border-bottom: 2px solid #eee; }
+        .log-item { background: #fafafa; padding: 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.9em; line-height: 1.4; border: 1px solid #eee; }
+        .log-west { border-left: 4px solid #673AB7; }
+        .log-east { border-left: 4px solid #1976D2; }
+
         /* 圖表區 */
-        .chart-container { position: relative; height: 800px; width: 100%; } 
+        .chart-container { position: relative; height: 900px; width: 100%; }
         
         .loading { text-align: center; display: none; color: #78909c; font-weight: bold; margin: 20px 0; }
         .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #37474f; animation: spin 1s infinite; vertical-align: middle; margin-right: 8px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* RWD */
+        @media (max-width: 768px) {
+            .log-container { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>📉 寒流分層監測儀表板</h1>
-    <div class="subtitle">自動標示週末 (週六/週日)，背景色調已優化</div>
+    <h1>⚔️ 寒流雙路徑整合儀表板</h1>
+    <div class="subtitle">
+        <span class="badge badge-west">西路 (內陸)</span> 哈密 ➔ 西安 ➔ 武漢<br>
+        <span class="badge badge-east">東路 (沿海)</span> 雅庫次克 ➔ 北京 ➔ 上海<br>
+        (所有層級皆共用左側 Y 軸，真實呈現溫差)
+    </div>
 
     <div class="controls">
         <div class="control-group">
@@ -59,14 +79,23 @@
             <label>傳導延遲 (最多天)</label>
             <input type="number" id="lagMax" value="3" min="0">
         </div>
-        <button onclick="analyzeWeather()">更新分析</button>
+        <button onclick="analyzeWeather()">🔄 更新對照分析</button>
     </div>
 
-    <div id="loading" class="loading"><span class="spinner"></span>正在連線 Open-Meteo 氣象衛星...</div>
+    <div id="loading" class="loading"><span class="spinner"></span>正在抓取 7 個城市的氣象資料...</div>
 
     <div id="result-area">
         <div id="statusBox" class="alert-box"></div>
-        <div id="logContent"></div>
+        <div class="log-container">
+            <div class="log-col">
+                <h4 style="color:#673AB7">西路警示 (West)</h4>
+                <div id="logWest"></div>
+            </div>
+            <div class="log-col">
+                <h4 style="color:#1976D2">東路警示 (East)</h4>
+                <div id="logEast"></div>
+            </div>
+        </div>
     </div>
 
     <div class="chart-container">
@@ -77,50 +106,41 @@
 <script>
     Chart.register(ChartDataLabels);
 
-    const cities = [
-        { id: 'A', name: '雅庫次克 (源頭)', lat: 62.03, lon: 129.74, color: '#1976D2', axis: 'yA' },
-        { id: 'B', name: '北京 (中繼)', lat: 39.90, lon: 116.40, color: '#F57C00', axis: 'yB' },
-        { id: 'C', name: '上海 (中繼)', lat: 31.23, lon: 121.47, color: '#388E3C', axis: 'yC' },
-        { id: 'D', name: '台北 (目標)', lat: 25.03, lon: 121.56, color: '#D32F2F', axis: 'yD' }
-    ];
+    const locations = {
+        // --- 西路 ---
+        ham: { name: '哈密 (西)', lat: 42.82, lon: 93.51, color: '#673AB7' },
+        xia: { name: '西安 (西)', lat: 34.34, lon: 108.94, color: '#FF9800' },
+        wuh: { name: '武漢 (西)', lat: 30.59, lon: 114.30, color: '#4CAF50' },
+        
+        // --- 東路 ---
+        yak: { name: '雅庫次克 (東)', lat: 62.03, lon: 129.74, color: '#1565C0' },
+        bei: { name: '北京 (東)', lat: 39.90, lon: 116.40, color: '#039BE5' },
+        sha: { name: '上海 (東)', lat: 31.23, lon: 121.47, color: '#0097A7' },
+
+        // --- 目標 ---
+        tpe: { name: '台北', lat: 25.03, lon: 121.56, color: '#D32F2F' }
+    };
 
     let myChart = null;
 
-    // --- 週末背景插件 (僅標示週六日) ---
     const weekendPlugin = {
         id: 'weekendPlugin',
         beforeDraw: (chart) => {
             const { ctx, chartArea: { top, bottom, height }, scales: { x } } = chart;
             ctx.save();
-
             x.ticks.forEach((tick, index) => {
-                const dateStr = chart.data.rawDates[index]; // 取得原始日期 YYYY-MM-DD
+                const dateStr = chart.data.rawDates[index];
                 if (!dateStr) return;
-
-                const dateObj = new Date(dateStr);
-                const dayOfWeek = dateObj.getDay(); // 0=週日, 6=週六
-
-                // 判斷是否為週末
-                const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-
-                if (isWeekend) {
+                const dayOfWeek = new Date(dateStr).getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
                     const width = x.width / x.ticks.length;
                     const xPos = x.getPixelForTick(index) - (width / 2);
-
-                    // --- 背景顏色: 10% 黑色 ---
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; 
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
                     ctx.fillRect(xPos, top, width, height);
-
-                    // --- 標示文字 ---
-                    ctx.fillStyle = '#333'; 
-                    ctx.font = 'bold 12px "Microsoft JhengHei"';
+                    ctx.fillStyle = '#333';
+                    ctx.font = 'bold 11px "Microsoft JhengHei"';
                     ctx.textAlign = 'center';
-                    
-                    let text = "";
-                    if (dayOfWeek === 6) text = "週六";
-                    else if (dayOfWeek === 0) text = "週日";
-
-                    ctx.fillText(text, x.getPixelForTick(index), top + 15);
+                    ctx.fillText(dayOfWeek === 6 ? "週六" : "週日", x.getPixelForTick(index), top + 15);
                 }
             });
             ctx.restore();
@@ -147,11 +167,14 @@
         
         document.getElementById('loading').style.display = 'block';
         document.getElementById('statusBox').style.display = 'none';
-        document.getElementById('logContent').innerHTML = '';
-        
+        document.getElementById('logWest').innerHTML = '';
+        document.getElementById('logEast').innerHTML = '';
+
         try {
-            const promises = cities.map(city => {
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&daily=temperature_2m_min,weathercode&timezone=auto&forecast_days=16`;
+            const keys = Object.keys(locations);
+            const promises = keys.map(key => {
+                const loc = locations[key];
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=temperature_2m_min,weathercode&timezone=auto&forecast_days=16`;
                 return fetch(url).then(res => res.json());
             });
 
@@ -160,85 +183,32 @@
 
             const weatherData = {};
             const weatherCodes = {};
-            
-            const rawDates = results[0].daily.time; 
+            const rawDates = results[0].daily.time;
             const displayLabels = rawDates.map(date => date.substring(5).replace('-', '/'));
 
-            results.forEach((data, index) => {
-                const cityId = cities[index].id;
-                weatherData[cityId] = data.daily.temperature_2m_min;
-                weatherCodes[cityId] = data.daily.weathercode;
+            keys.forEach((key, index) => {
+                weatherData[key] = results[index].daily.temperature_2m_min;
+                weatherCodes[key] = results[index].daily.weathercode;
             });
 
-            drawChart(displayLabels, rawDates, weatherData, weatherCodes);
+            drawIntegratedChart(displayLabels, rawDates, weatherData, weatherCodes);
 
-            let alerts = [];
-            const dataA = weatherData['A'];
-            const dataB = weatherData['B'];
-            const dataC = weatherData['C'];
+            let totalAlerts = 0;
+            const alertsWest = runPathLogic('ham', 'xia', 'wuh', 'tpe', weatherData, displayLabels, threshold, windowDays, lagMin, lagMax);
+            const alertsEast = runPathLogic('yak', 'bei', 'sha', 'tpe', weatherData, displayLabels, threshold, windowDays, lagMin, lagMax);
+
+            renderLogs('logWest', alertsWest, 'log-west');
+            renderLogs('logEast', alertsEast, 'log-east');
             
-            const maxScanDay = dataA.length - windowDays - (lagMax * 2);
-
-            for (let i = 0; i < dataA.length - windowDays; i++) {
-                let dropA = dataA[i] - dataA[i + windowDays];
-
-                if (dropA >= threshold) {
-                    let dateStartA = displayLabels[i];
-                    
-                    for (let d1 = lagMin; d1 <= lagMax; d1++) {
-                        let idxB = i + d1;
-                        if (idxB + windowDays >= dataB.length) continue;
-                        
-                        let dropB = dataB[idxB] - dataB[idxB + windowDays];
-
-                        if (dropB >= threshold) {
-                            let dateStartB = displayLabels[idxB];
-                            
-                            for (let d2 = lagMin; d2 <= lagMax; d2++) {
-                                let idxC = idxB + d2;
-                                if (idxC + windowDays >= dataC.length) continue;
-
-                                let dropC = dataC[idxC] - dataC[idxC + windowDays];
-
-                                if (dropC >= threshold) {
-                                    let dateStartC = displayLabels[idxC];
-                                    let dateEndC = displayLabels[idxC + windowDays];
-                                    
-                                    let alertId = `${dateStartA}-${dateStartB}-${dateStartC}`;
-                                    
-                                    if (!alerts.some(a => a.id === alertId)) {
-                                        alerts.push({ 
-                                            id: alertId,
-                                            msg: `
-                                            <div style="font-weight:bold; color:#333; margin-bottom:4px;">❄️ 路徑確認 (${windowDays}天跌${threshold}度)</div>
-                                            <span style="color:${cities[0].color}">●</span> 雅庫次克 (${dateStartA}): 降 <b>${dropA.toFixed(1)}°C</b><br>
-                                            <span style="color:${cities[1].color}">●</span> 北京 (${dateStartB}): 降 <b>${dropB.toFixed(1)}°C</b> (距A ${d1}天)<br>
-                                            <span style="color:${cities[2].color}">●</span> 上海 (${dateStartC}): 降 <b>${dropC.toFixed(1)}°C</b> (距B ${d2}天)<br>
-                                            👉 <b>台北請在 ${dateEndC} 後戒備！</b>
-                                            ` 
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
+            totalAlerts = alertsWest.length + alertsEast.length;
             const statusBox = document.getElementById('statusBox');
-            if (alerts.length > 0) {
+            if (totalAlerts > 0) {
                 statusBox.className = 'alert-box alert-danger';
-                statusBox.innerHTML = `⚠️ <b>警報！</b> 偵測到 ${alerts.length} 條寒流路徑 (條件: ${windowDays}天內累積降溫 > ${threshold}°C)。`;
+                statusBox.innerHTML = `⚠️ 偵測到 <b>${totalAlerts}</b> 個符合條件的寒流降溫訊號。`;
                 statusBox.style.display = 'block';
-                alerts.forEach(a => {
-                    const d = document.createElement('div');
-                    d.className = 'log-item';
-                    d.innerHTML = a.msg;
-                    document.getElementById('logContent').appendChild(d);
-                });
             } else {
                 statusBox.className = 'alert-box alert-success';
-                statusBox.innerHTML = `✅ 未來 16 天內，未偵測到「連續 ${windowDays} 天累積降溫超過 ${threshold}°C」的連鎖寒流。`;
+                statusBox.innerHTML = `✅ 未來 16 天內，東西兩路均未偵測到顯著連鎖降溫訊號。`;
                 statusBox.style.display = 'block';
             }
 
@@ -248,53 +218,154 @@
         }
     }
 
-    function drawChart(labels, rawDates, tempMap, codeMap) {
+    function runPathLogic(idA, idB, idC, idD, dataMap, dates, threshold, windowDays, lagMin, lagMax) {
+        let alerts = [];
+        const dataA = dataMap[idA];
+        const dataB = dataMap[idB];
+        const dataC = dataMap[idC];
+        const maxScanDay = dataA.length - windowDays - (lagMax * 2);
+
+        for (let i = 0; i < maxScanDay; i++) {
+            let dropA = dataA[i] - dataA[i + windowDays];
+            if (dropA >= threshold) {
+                for (let d1 = lagMin; d1 <= lagMax; d1++) {
+                    let idxB = i + d1;
+                    if (idxB + windowDays >= dataB.length) continue;
+                    let dropB = dataB[idxB] - dataB[idxB + windowDays];
+                    if (dropB >= threshold) {
+                        for (let d2 = lagMin; d2 <= lagMax; d2++) {
+                            let idxC = idxB + d2;
+                            if (idxC + windowDays >= dataC.length) continue;
+                            let dropC = dataC[idxC] - dataC[idxC + windowDays];
+                            if (dropC >= threshold) {
+                                let dateA = dates[i];
+                                let dateC = dates[idxC];
+                                let id = `${dateA}-${dateC}`;
+                                if (!alerts.some(a => a.id === id)) {
+                                    alerts.push({
+                                        id: id,
+                                        msg: `<b>${dateA}</b> 起始:<br>源頭降 ${dropA.toFixed(1)}° ➔ 南方(${dateC})降 ${dropC.toFixed(1)}°`
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return alerts;
+    }
+
+    function renderLogs(elementId, alerts, cssClass) {
+        const container = document.getElementById(elementId);
+        if (alerts.length === 0) {
+            container.innerHTML = '<div style="color:#999; font-style:italic;">無訊號</div>';
+            return;
+        }
+        alerts.forEach(a => {
+            const d = document.createElement('div');
+            d.className = `log-item ${cssClass}`;
+            d.innerHTML = a.msg;
+            container.appendChild(d);
+        });
+    }
+
+    function drawIntegratedChart(labels, rawDates, tempMap, codeMap) {
         const ctx = document.getElementById('weatherChart').getContext('2d');
         if (myChart) myChart.destroy();
 
-        const datasets = cities.map((city) => ({
-            label: city.name,
-            data: tempMap[city.id],
-            borderColor: city.color,
-            backgroundColor: city.color,
+        const createDataset = (key, axisId) => ({
+            label: locations[key].name,
+            data: tempMap[key],
+            borderColor: locations[key].color,
+            backgroundColor: locations[key].color,
             borderWidth: 2,
-            pointRadius: 4,
-            yAxisID: city.axis,
+            pointRadius: 3,
+            yAxisID: axisId,
             datalabels: {
                 align: 'top',
                 anchor: 'center',
-                offset: 4,
+                offset: 2,
                 color: '#333',
-                font: { size: 15, weight: 'bold', family: 'Segoe UI Emoji' }, 
+                font: { size: 12, weight: 'bold', family: 'Segoe UI Emoji' },
                 formatter: (value, ctx) => {
-                    const code = codeMap[city.id][ctx.dataIndex];
+                    const code = codeMap[key][ctx.dataIndex];
                     return Math.round(value) + '°\n' + getWeatherEmoji(code);
                 },
                 textAlign: 'center'
             }
-        }));
+        });
+
+        // 4 層堆疊，每層都使用同一個 'left' Y 軸設定
+        // stackWeight: 1 確保四層高度平均
+        
+        const datasets = [
+            // 第一層 (Row 1): 哈密 vs 雅庫次克
+            createDataset('ham', 'yRow1'),
+            createDataset('yak', 'yRow1'),
+
+            // 第二層 (Row 2): 西安 vs 北京
+            createDataset('xia', 'yRow2'),
+            createDataset('bei', 'yRow2'),
+
+            // 第三層 (Row 3): 武漢 vs 上海
+            createDataset('wuh', 'yRow3'),
+            createDataset('sha', 'yRow3'),
+
+            // 第四層 (Row 4): 台北
+            createDataset('tpe', 'yRow4')
+        ];
 
         myChart = new Chart(ctx, {
             type: 'line',
-            data: { 
-                labels: labels, 
-                datasets: datasets,
-                rawDates: rawDates 
-            },
-            plugins: [weekendPlugin], 
+            data: { labels, datasets, rawDates },
+            plugins: [weekendPlugin],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: { padding: { top: 30, bottom: 10 } },
+                layout: { padding: { top: 20, bottom: 10, left: 10, right: 10 } },
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    x: { grid: { drawOnChartArea: false } }, 
-                    yA: { type: 'linear', position: 'left', stack: 'weatherStack', stackWeight: 1, title: { display: true, text: 'A-雅庫次克', color: '#1976D2' }, grid: { color: '#eee' } },
-                    yB: { type: 'linear', position: 'left', stack: 'weatherStack', stackWeight: 1, title: { display: true, text: 'B-北京', color: '#F57C00' }, grid: { color: '#eee' }, offset: true },
-                    yC: { type: 'linear', position: 'left', stack: 'weatherStack', stackWeight: 1, title: { display: true, text: 'C-上海', color: '#388E3C' }, grid: { color: '#eee' }, offset: true },
-                    yD: { type: 'linear', position: 'left', stack: 'weatherStack', stackWeight: 1, title: { display: true, text: 'D-台北', color: '#D32F2F' }, grid: { color: '#eee' }, offset: true }
+                    x: { grid: { drawOnChartArea: false } },
+                    
+                    // 這裡定義 4 個分層的 Y 軸
+                    // 注意：不再有 yEast1 (右軸)，全部靠左對齊
+                    yRow1: {
+                        type: 'linear', position: 'left',
+                        stack: 'mainStack', stackWeight: 1, 
+                        title: { display: true, text: '哈密 vs 雅庫次克', color: '#444', font: {weight:'bold'} },
+                        grid: { color: '#eee' }
+                    },
+                    yRow2: {
+                        type: 'linear', position: 'left',
+                        stack: 'mainStack', stackWeight: 1,
+                        title: { display: true, text: '西安 vs 北京', color: '#444', font: {weight:'bold'} },
+                        grid: { color: '#eee' },
+                        offset: true
+                    },
+                    yRow3: {
+                        type: 'linear', position: 'left',
+                        stack: 'mainStack', stackWeight: 1,
+                        title: { display: true, text: '武漢 vs 上海', color: '#444', font: {weight:'bold'} },
+                        grid: { color: '#eee' },
+                        offset: true
+                    },
+                    yRow4: {
+                        type: 'linear', position: 'left',
+                        stack: 'mainStack', stackWeight: 1,
+                        title: { display: true, text: '台北', color: '#D32F2F', font: {weight:'bold'} },
+                        grid: { color: '#eee' },
+                        offset: true
+                    }
                 },
-                plugins: { legend: { display: false }, tooltip: { enabled: true } }
+                plugins: {
+                    legend: { 
+                        display: true, 
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 15 }
+                    },
+                    tooltip: { enabled: true }
+                }
             }
         });
     }
