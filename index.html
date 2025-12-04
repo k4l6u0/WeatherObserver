@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>寒流雙路徑整合儀表板 (統一軸線版)</title>
+    <title>東西路寒流雙路徑整合儀表板 (統一軸線版) build 25120401</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
@@ -11,7 +11,7 @@
         body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.08); }
         
-        h1 { text-align: center; color: #2c3e50; margin: 0 0 10px 0; }
+        h1 { text-align: center; color: #2c3e50; margin: 0 0 10px 0; font-size: 1.8rem; }
         .subtitle { text-align: center; color: #546e7a; font-size: 0.95rem; margin-bottom: 25px; line-height: 1.6; }
         
         /* 顏色標記說明 */
@@ -46,6 +46,13 @@
         .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #37474f; animation: spin 1s infinite; vertical-align: middle; margin-right: 8px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Footer / Release Notes */
+        footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 0.85rem; font-family: Consolas, "Courier New", monospace; }
+        footer h3 { font-size: 1rem; margin-bottom: 10px; color: #333; }
+        footer ul { list-style-type: none; padding: 0; }
+        footer li { margin-bottom: 5px; }
+        .version-tag { background: #eee; padding: 2px 6px; border-radius: 3px; font-weight: bold; margin-right: 8px; color: #333; }
+
         /* RWD */
         @media (max-width: 768px) {
             .log-container { grid-template-columns: 1fr; }
@@ -55,7 +62,7 @@
 <body>
 
 <div class="container">
-    <h1>⚔️ 寒流雙路徑整合儀表板</h1>
+    <h1>東西路寒流雙路徑整合儀表板 (統一軸線版) <span style="font-size:0.6em; color:#777;">build 25120401</span></h1>
     <div class="subtitle">
         <span class="badge badge-west">西路 (內陸)</span> 哈密 ➔ 西安 ➔ 武漢<br>
         <span class="badge badge-east">東路 (沿海)</span> 雅庫次克 ➔ 北京 ➔ 上海<br>
@@ -101,6 +108,13 @@
     <div class="chart-container">
         <canvas id="weatherChart"></canvas>
     </div>
+
+    <footer>
+        <h3>📅 Release Notes</h3>
+        <ul>
+            <li><span class="version-tag">build 25120401</span> 整合「東西雙路徑」於單一圖表，取消特殊雙軸，統一使用左側 Y 軸以直觀比較絕對溫差；加入版本控管與 Release Notes 區域。</li>
+        </ul>
+    </footer>
 </div>
 
 <script>
@@ -135,8 +149,10 @@
                 if (dayOfWeek === 0 || dayOfWeek === 6) {
                     const width = x.width / x.ticks.length;
                     const xPos = x.getPixelForTick(index) - (width / 2);
+                    // 背景色: 10% 黑
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
                     ctx.fillRect(xPos, top, width, height);
+                    
                     ctx.fillStyle = '#333';
                     ctx.font = 'bold 11px "Microsoft JhengHei"';
                     ctx.textAlign = 'center';
