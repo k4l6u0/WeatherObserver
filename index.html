@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Where is Snowman? build 25121209</title>
+    <title>會變冷嘸？ BUILD 251212ab</title>
     <!-- 使用穩定的 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -11,16 +11,16 @@
     <style>
         /* Dark Mode 全局設定 */
         body { 
-            font-family: "Segoe UI", "Roboto", "Microsoft JhengHei", sans-serif; 
-            background-color: #121212; /* 深黑背景 */
-            color: #e0e0e0; /* 淺色文字 */
+            font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; 
+            background-color: #121212; 
+            color: #e0e0e0; 
             margin: 0; padding: 20px; 
         }
         
         .container { 
             max-width: 1200px; 
             margin: 0 auto; 
-            background: #1e1e1e; /* 卡片深色背景 */
+            background: #1e1e1e; 
             padding: 0; 
             border-radius: 16px; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
@@ -41,7 +41,6 @@
             border-bottom: 1px solid #444;
         }
         
-        /* 雪花動效保留，調整透明度適應黑底 */
         header::before {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: 
@@ -55,13 +54,37 @@
         @keyframes snow { from {background-position: 0 0, 30px 30px;} to {background-position: 0 60px, 30px 90px;} }
 
         /* 左側標題區 */
-        .header-left { position: relative; z-index: 2; }
-        h1 { margin: 0; font-size: 2.2rem; font-weight: 900; letter-spacing: 1px; color: #4fc3f7; text-shadow: 0 0 10px rgba(79, 195, 247, 0.3); }
-        .subtitle { font-size: 0.9rem; color: #b0bec5; margin-top: 5px; font-weight: 400; }
-        .build-ver { font-size: 0.4em; opacity: 0.7; font-weight: normal; border: 1px solid #4fc3f7; color: #4fc3f7; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 10px;}
+        .header-left { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; }
         
+        /* 主標題樣式 */
+        h1 { 
+            margin: 0; 
+            font-size: 2.5rem; 
+            font-weight: 900; 
+            letter-spacing: 2px; 
+            color: #4fc3f7; 
+            text-shadow: 0 0 15px rgba(79, 195, 247, 0.4);
+            line-height: 1.1;
+        }
+        
+        /* 版號 (折行顯示) */
+        .build-tag-block { 
+            font-family: 'Consolas', monospace;
+            font-size: 0.8rem; 
+            color: #1e1e1e; 
+            background: #ffeb3b; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            font-weight: bold;
+            margin-top: 8px;
+            display: inline-block;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(255, 235, 59, 0.3);
+        }
+        
+        /* 指標說明 */
         .hud-display {
-            display: flex; gap: 15px; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: #ccc;
+            display: flex; gap: 15px; margin-top: 15px; font-size: 0.85rem; font-weight: 600; color: #ccc;
         }
         .hud-item { display: flex; align-items: center; gap: 6px; }
         .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 5px currentColor; }
@@ -102,7 +125,8 @@
         .version-tag { background: #333; padding: 2px 6px; border-radius: 3px; font-weight: bold; color: #eee; margin-right: 5px; border: 1px solid #555; }
 
         @media (max-width: 768px) {
-            header { flex-direction: column; gap: 15px; text-align: center; }
+            header { flex-direction: column; gap: 20px; text-align: center; align-items: center; }
+            .header-left { align-items: center; }
             .hud-display { justify-content: center; }
         }
     </style>
@@ -112,8 +136,9 @@
 <div class="container">
     <header>
         <div class="header-left">
-            <h1>Where is Snowman? <span class="build-ver">build 25121209</span></h1>
-            <div class="subtitle">追蹤西伯利亞的腳步 · 寒流雙路徑偵測</div>
+            <h1>會變冷嘸？</h1>
+            <span class="build-tag-block">BUILD 251212ab</span>
+            
             <div class="hud-display">
                 <div class="hud-item"><span class="dot" style="background:#B388FF"></span> 西路</div>
                 <div class="hud-item"><span class="dot" style="background:#448AFF"></span> 東路</div>
@@ -122,13 +147,20 @@
         </div>
         <div class="header-right">
             <button class="reload-btn" onclick="analyzeWeather()">
-                <span>❄️</span> SCAN
+                <span>⚡</span> RELOAD
             </button>
         </div>
     </header>
 
     <div class="content-body">
         
+        <div style="display:none;">
+            <input type="number" id="windowDays" value="2">
+            <input type="number" id="dropThreshold" value="3">
+            <input type="number" id="lagMin" value="0"> 
+            <input type="number" id="lagMax" value="3">
+        </div>
+
         <div id="loading" class="loading">🛰️ SCANNING ATMOSPHERE...</div>
 
         <div class="chart-container">
@@ -136,36 +168,35 @@
         </div>
 
         <footer>
-            <h3>Mission Logs</h3>
+            <h3>System Logs</h3>
             <ul>
-                <li><span class="version-tag">build 25121209</span> <b>Dark Mode Activated</b>：介面全面暗黑化，提升數據可讀性與沈浸感。圖表配色優化：文字與格線調整為淺色高對比，確保在深色背景下依然清晰。</li>
-                <li><span class="version-tag">build 25121208</span> 演算法優化：邏輯回滾至固定基數 (+8°C) 並加入高溫抑制機制 (Cap > 18°C)。</li>
+                <li><span class="version-tag">251212ab</span> <b>Typos Fix</b>：修正標題文字為「會變冷嘸？」，更貼近台語語感。</li>
+                <li><span class="version-tag">251212aa</span> <b>Identity Update</b>：更名並採用 Dark Mode 介面；版號格式更新為 YYMMDDaa。</li>
+                <li><span class="version-tag">25121208</span> 演算法回滾至固定基數 (+8°C) 與高溫抑制 (Cap)。</li>
             </ul>
         </footer>
     </div>
 </div>
 
 <script>
-    try {
-        if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
-    } catch (e) { console.error(e); }
+    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+        Chart.register(ChartDataLabels);
+    }
 
     const locations = {
-        // 為了在暗黑模式下更清楚，稍微調亮了原本的顏色
-        ham: { name: '哈密 (西)', lat: 42.82, lon: 93.51, color: '#B388FF' }, // 淺紫
-        xia: { name: '西安 (西)', lat: 34.34, lon: 108.94, color: '#FFB74D' }, // 淺橘
-        wuh: { name: '武漢 (西)', lat: 30.59, lon: 114.30, color: '#69F0AE' }, // 螢光綠
+        ham: { name: '哈密 (西)', lat: 42.82, lon: 93.51, color: '#B388FF' },
+        xia: { name: '西安 (西)', lat: 34.34, lon: 108.94, color: '#FFB74D' },
+        wuh: { name: '武漢 (西)', lat: 30.59, lon: 114.30, color: '#69F0AE' },
         
-        yak: { name: '雅庫次克 (東)', lat: 62.03, lon: 129.74, color: '#448AFF' }, // 亮藍
-        bei: { name: '北京 (東)', lat: 39.90, lon: 116.40, color: '#4DD0E1' }, // 青色
-        sha: { name: '上海 (東)', lat: 31.23, lon: 121.47, color: '#80DEEA' }, // 淺青
+        yak: { name: '雅庫次克 (東)', lat: 62.03, lon: 129.74, color: '#448AFF' },
+        bei: { name: '北京 (東)', lat: 39.90, lon: 116.40, color: '#4DD0E1' },
+        sha: { name: '上海 (東)', lat: 31.23, lon: 121.47, color: '#80DEEA' },
 
-        tpe: { name: '台北 (預報)', lat: 25.03, lon: 121.56, color: '#FF5252' } // 亮紅
+        tpe: { name: '台北 (預報)', lat: 25.03, lon: 121.56, color: '#FF5252' }
     };
 
     let myChart = null;
 
-    // 暗黑版週末背景插件
     const weekendPlugin = {
         id: 'weekendPlugin',
         beforeDraw: (chart) => {
@@ -178,10 +209,9 @@
                 if (dayOfWeek === 0 || dayOfWeek === 6) {
                     const width = x.width / x.ticks.length;
                     const xPos = x.getPixelForTick(index) - (width / 2);
-                    // 改為淺白色半透明，在黑底上呈現微亮區塊
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'; 
                     ctx.fillRect(xPos, top, width, height);
-                    ctx.fillStyle = '#888'; // 週末文字顏色
+                    ctx.fillStyle = '#888';
                     ctx.font = 'bold 10px "Segoe UI"';
                     ctx.textAlign = 'center';
                     ctx.fillText(dayOfWeek === 6 ? "SAT" : "SUN", x.getPixelForTick(index), top + 15);
@@ -213,7 +243,6 @@
             const promises = keys.map(key => {
                 const loc = locations[key];
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=temperature_2m_min,weathercode&timezone=auto&forecast_days=16`;
-                
                 return fetch(url).then(res => {
                     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                     return res.json();
@@ -233,7 +262,7 @@
                 weatherCodes[key] = results[index].daily.weathercode;
             });
 
-            // --- 演算法 V5 (同上個版本) ---
+            // --- 演算法 V5: Rollback & Cap ---
             const predictedTaipei = [];
             const shaData = weatherData['sha'];
             const wuhData = weatherData['wuh'];
@@ -285,7 +314,7 @@
         const ctx = document.getElementById('weatherChart').getContext('2d');
         if (myChart) myChart.destroy();
 
-        // 輔助變數：格線與文字顏色 (Dark Mode)
+        // Dark Mode Colors
         const gridColor = 'rgba(255, 255, 255, 0.1)';
         const textColor = '#ccc';
         const titleColor = '#eee';
@@ -302,7 +331,7 @@
                 align: 'top',
                 anchor: 'center',
                 offset: 2,
-                color: '#fff', // 數據標籤改為全白
+                color: '#fff',
                 font: { size: 11, weight: 'bold' },
                 formatter: (value, ctx) => {
                     const code = codeMap[key][ctx.dataIndex];
@@ -321,11 +350,10 @@
             createDataset('sha', 'yRow3'),
             createDataset('tpe', 'yRow4'),
             
-            // 虛線推演
             {
                 label: '台北 (趨勢推演)',
                 data: predTaipeiData,
-                borderColor: '#FF4081', // 亮洋紅 (Neon Pink)
+                borderColor: '#FF4081',
                 backgroundColor: '#FF4081',
                 borderWidth: 2,
                 borderDash: [5, 5],
@@ -364,7 +392,7 @@
                         type: 'linear', position: 'left',
                         stack: 'mainStack', stackWeight: 1, 
                         title: { display: true, text: '哈密 vs 雅庫次克', color: titleColor, font: {weight:'bold'} },
-                        grid: { color: gridColor }, // 淺色格線
+                        grid: { color: gridColor },
                         ticks: { color: textColor }
                     },
                     yRow2: {
@@ -400,7 +428,7 @@
                             usePointStyle: true, 
                             padding: 15, 
                             font: {family: 'Segoe UI'},
-                            color: textColor // 圖例文字改淺色
+                            color: textColor 
                         }
                     },
                     tooltip: { enabled: true }
@@ -409,7 +437,6 @@
         });
     }
     
-    // 自動執行
     window.onload = analyzeWeather;
 </script>
 
