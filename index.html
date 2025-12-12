@@ -3,140 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>東西路寒流雙路徑整合儀表板 (統一軸線版) build 25120401</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <title>Where is Snowman? build 25121209</title>
+    <!-- 使用穩定的 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     
     <style>
-        body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.08); }
+        /* Dark Mode 全局設定 */
+        body { 
+            font-family: "Segoe UI", "Roboto", "Microsoft JhengHei", sans-serif; 
+            background-color: #121212; /* 深黑背景 */
+            color: #e0e0e0; /* 淺色文字 */
+            margin: 0; padding: 20px; 
+        }
         
-        h1 { text-align: center; color: #2c3e50; margin: 0 0 10px 0; font-size: 1.8rem; }
-        .subtitle { text-align: center; color: #546e7a; font-size: 0.95rem; margin-bottom: 25px; line-height: 1.6; }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: #1e1e1e; /* 卡片深色背景 */
+            padding: 0; 
+            border-radius: 16px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
+            overflow: hidden; 
+            border: 1px solid #333;
+        }
         
-        /* 顏色標記說明 */
-        .badge { padding: 3px 8px; border-radius: 4px; color: white; font-weight: bold; font-size: 0.85em; margin: 0 4px; }
-        .badge-west { background-color: #673AB7; } /* 紫色系 */
-        .badge-east { background-color: #1976D2; } /* 藍色系 */
+        /* 標題區 - 冰霜漸層 */
+        header { 
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); 
+            padding: 25px 35px; 
+            color: white; 
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+        }
+        
+        /* 雪花動效保留，調整透明度適應黑底 */
+        header::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(rgba(255,255,255,0.2) 15%, transparent 16%),
+                radial-gradient(rgba(255,255,255,0.2) 15%, transparent 16%);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+            opacity: 0.2;
+            animation: snow 10s linear infinite;
+        }
+        @keyframes snow { from {background-position: 0 0, 30px 30px;} to {background-position: 0 60px, 30px 90px;} }
 
-        /* 控制面板 */
-        .controls { display: flex; flex-wrap: wrap; gap: 15px; background: #eceff1; padding: 20px; border-radius: 8px; margin-bottom: 20px; align-items: flex-end; justify-content: center; }
-        .control-group { display: flex; flex-direction: column; }
-        label { font-size: 13px; font-weight: 700; margin-bottom: 5px; color: #37474f; }
-        input { padding: 8px; border: 1px solid #cfd8dc; border-radius: 4px; width: 70px; text-align: center; font-weight: bold; }
-        button { padding: 8px 25px; background-color: #263238; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; height: 36px; transition: 0.2s; }
-        button:hover { background-color: #000; }
-
-        /* 警報區 */
-        #result-area { margin-bottom: 20px; }
-        .alert-box { padding: 15px; border-radius: 6px; margin-bottom: 10px; display: none; font-size: 0.95rem; border-left: 5px solid; }
-        .alert-danger { background-color: #fff3e0; color: #bf360c; border-color: #ff5722; }
-        .alert-success { background-color: #e8f5e9; color: #2e7d32; border-color: #4caf50; }
+        /* 左側標題區 */
+        .header-left { position: relative; z-index: 2; }
+        h1 { margin: 0; font-size: 2.2rem; font-weight: 900; letter-spacing: 1px; color: #4fc3f7; text-shadow: 0 0 10px rgba(79, 195, 247, 0.3); }
+        .subtitle { font-size: 0.9rem; color: #b0bec5; margin-top: 5px; font-weight: 400; }
+        .build-ver { font-size: 0.4em; opacity: 0.7; font-weight: normal; border: 1px solid #4fc3f7; color: #4fc3f7; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 10px;}
         
-        .log-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .log-col h4 { margin: 0 0 10px 0; text-align: center; padding-bottom: 5px; border-bottom: 2px solid #eee; }
-        .log-item { background: #fafafa; padding: 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.9em; line-height: 1.4; border: 1px solid #eee; }
-        .log-west { border-left: 4px solid #673AB7; }
-        .log-east { border-left: 4px solid #1976D2; }
+        .hud-display {
+            display: flex; gap: 15px; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: #ccc;
+        }
+        .hud-item { display: flex; align-items: center; gap: 6px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 5px currentColor; }
+
+        /* 右側按鈕區 */
+        .header-right { position: relative; z-index: 2; }
+        .reload-btn {
+            background: rgba(79, 195, 247, 0.1);
+            border: 1px solid rgba(79, 195, 247, 0.5);
+            color: #4fc3f7;
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(79, 195, 247, 0.1);
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .reload-btn:hover {
+            background: rgba(79, 195, 247, 0.2);
+            box-shadow: 0 0 20px rgba(79, 195, 247, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* 內容區 */
+        .content-body { padding: 10px 25px 25px 25px; }
 
         /* 圖表區 */
-        .chart-container { position: relative; height: 900px; width: 100%; }
-        
-        .loading { text-align: center; display: none; color: #78909c; font-weight: bold; margin: 20px 0; }
-        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: #37474f; animation: spin 1s infinite; vertical-align: middle; margin-right: 8px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .chart-container { position: relative; height: 850px; width: 100%; margin-top: 20px; }
+        .loading { text-align: center; display: none; color: #4fc3f7; font-weight: bold; margin: 50px 0; font-size: 1.2rem; letter-spacing: 2px; }
 
-        /* Footer / Release Notes */
-        footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 0.85rem; font-family: Consolas, "Courier New", monospace; }
-        footer h3 { font-size: 1rem; margin-bottom: 10px; color: #333; }
-        footer ul { list-style-type: none; padding: 0; }
-        footer li { margin-bottom: 5px; }
-        .version-tag { background: #eee; padding: 2px 6px; border-radius: 3px; font-weight: bold; margin-right: 8px; color: #333; }
+        /* Footer */
+        footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; color: #777; font-size: 0.8rem; font-family: Consolas, monospace; }
+        footer h3 { font-size: 0.9rem; margin-bottom: 10px; color: #aaa; text-transform: uppercase; }
+        .version-tag { background: #333; padding: 2px 6px; border-radius: 3px; font-weight: bold; color: #eee; margin-right: 5px; border: 1px solid #555; }
 
-        /* RWD */
         @media (max-width: 768px) {
-            .log-container { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 15px; text-align: center; }
+            .hud-display { justify-content: center; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>東西路寒流雙路徑整合儀表板 (統一軸線版) <span style="font-size:0.6em; color:#777;">build 25120401</span></h1>
-    <div class="subtitle">
-        <span class="badge badge-west">西路 (內陸)</span> 哈密 ➔ 西安 ➔ 武漢<br>
-        <span class="badge badge-east">東路 (沿海)</span> 雅庫次克 ➔ 北京 ➔ 上海<br>
-        (所有層級皆共用左側 Y 軸，真實呈現溫差)
-    </div>
-
-    <div class="controls">
-        <div class="control-group">
-            <label style="color:#d32f2f;">連續降溫天數</label>
-            <input type="number" id="windowDays" value="2" min="1" max="5">
-        </div>
-        <div class="control-group">
-            <label>累積降溫門檻(°C)</label>
-            <input type="number" id="dropThreshold" value="3" min="1">
-        </div>
-        <div class="control-group">
-            <label>傳導延遲 (最少天)</label>
-            <input type="number" id="lagMin" value="0" min="0"> 
-        </div>
-        <div class="control-group">
-            <label>傳導延遲 (最多天)</label>
-            <input type="number" id="lagMax" value="3" min="0">
-        </div>
-        <button onclick="analyzeWeather()">🔄 更新對照分析</button>
-    </div>
-
-    <div id="loading" class="loading"><span class="spinner"></span>正在抓取 7 個城市的氣象資料...</div>
-
-    <div id="result-area">
-        <div id="statusBox" class="alert-box"></div>
-        <div class="log-container">
-            <div class="log-col">
-                <h4 style="color:#673AB7">西路警示 (West)</h4>
-                <div id="logWest"></div>
-            </div>
-            <div class="log-col">
-                <h4 style="color:#1976D2">東路警示 (East)</h4>
-                <div id="logEast"></div>
+    <header>
+        <div class="header-left">
+            <h1>Where is Snowman? <span class="build-ver">build 25121209</span></h1>
+            <div class="subtitle">追蹤西伯利亞的腳步 · 寒流雙路徑偵測</div>
+            <div class="hud-display">
+                <div class="hud-item"><span class="dot" style="background:#B388FF"></span> 西路</div>
+                <div class="hud-item"><span class="dot" style="background:#448AFF"></span> 東路</div>
+                <div class="hud-item"><span class="dot" style="background:#FF4081"></span> AI 推演</div>
             </div>
         </div>
-    </div>
+        <div class="header-right">
+            <button class="reload-btn" onclick="analyzeWeather()">
+                <span>❄️</span> SCAN
+            </button>
+        </div>
+    </header>
 
-    <div class="chart-container">
-        <canvas id="weatherChart"></canvas>
-    </div>
+    <div class="content-body">
+        
+        <div id="loading" class="loading">🛰️ SCANNING ATMOSPHERE...</div>
 
-    <footer>
-        <h3>📅 Release Notes</h3>
-        <ul>
-            <li><span class="version-tag">build 25120401</span> 整合「東西雙路徑」於單一圖表，取消特殊雙軸，統一使用左側 Y 軸以直觀比較絕對溫差；加入版本控管與 Release Notes 區域。</li>
-        </ul>
-    </footer>
+        <div class="chart-container">
+            <canvas id="weatherChart"></canvas>
+        </div>
+
+        <footer>
+            <h3>Mission Logs</h3>
+            <ul>
+                <li><span class="version-tag">build 25121209</span> <b>Dark Mode Activated</b>：介面全面暗黑化，提升數據可讀性與沈浸感。圖表配色優化：文字與格線調整為淺色高對比，確保在深色背景下依然清晰。</li>
+                <li><span class="version-tag">build 25121208</span> 演算法優化：邏輯回滾至固定基數 (+8°C) 並加入高溫抑制機制 (Cap > 18°C)。</li>
+            </ul>
+        </footer>
+    </div>
 </div>
 
 <script>
-    Chart.register(ChartDataLabels);
+    try {
+        if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
+    } catch (e) { console.error(e); }
 
     const locations = {
-        // --- 西路 ---
-        ham: { name: '哈密 (西)', lat: 42.82, lon: 93.51, color: '#673AB7' },
-        xia: { name: '西安 (西)', lat: 34.34, lon: 108.94, color: '#FF9800' },
-        wuh: { name: '武漢 (西)', lat: 30.59, lon: 114.30, color: '#4CAF50' },
+        // 為了在暗黑模式下更清楚，稍微調亮了原本的顏色
+        ham: { name: '哈密 (西)', lat: 42.82, lon: 93.51, color: '#B388FF' }, // 淺紫
+        xia: { name: '西安 (西)', lat: 34.34, lon: 108.94, color: '#FFB74D' }, // 淺橘
+        wuh: { name: '武漢 (西)', lat: 30.59, lon: 114.30, color: '#69F0AE' }, // 螢光綠
         
-        // --- 東路 ---
-        yak: { name: '雅庫次克 (東)', lat: 62.03, lon: 129.74, color: '#1565C0' },
-        bei: { name: '北京 (東)', lat: 39.90, lon: 116.40, color: '#039BE5' },
-        sha: { name: '上海 (東)', lat: 31.23, lon: 121.47, color: '#0097A7' },
+        yak: { name: '雅庫次克 (東)', lat: 62.03, lon: 129.74, color: '#448AFF' }, // 亮藍
+        bei: { name: '北京 (東)', lat: 39.90, lon: 116.40, color: '#4DD0E1' }, // 青色
+        sha: { name: '上海 (東)', lat: 31.23, lon: 121.47, color: '#80DEEA' }, // 淺青
 
-        // --- 目標 ---
-        tpe: { name: '台北', lat: 25.03, lon: 121.56, color: '#D32F2F' }
+        tpe: { name: '台北 (預報)', lat: 25.03, lon: 121.56, color: '#FF5252' } // 亮紅
     };
 
     let myChart = null;
 
+    // 暗黑版週末背景插件
     const weekendPlugin = {
         id: 'weekendPlugin',
         beforeDraw: (chart) => {
@@ -149,14 +178,13 @@
                 if (dayOfWeek === 0 || dayOfWeek === 6) {
                     const width = x.width / x.ticks.length;
                     const xPos = x.getPixelForTick(index) - (width / 2);
-                    // 背景色: 10% 黑
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                    // 改為淺白色半透明，在黑底上呈現微亮區塊
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'; 
                     ctx.fillRect(xPos, top, width, height);
-                    
-                    ctx.fillStyle = '#333';
-                    ctx.font = 'bold 11px "Microsoft JhengHei"';
+                    ctx.fillStyle = '#888'; // 週末文字顏色
+                    ctx.font = 'bold 10px "Segoe UI"';
                     ctx.textAlign = 'center';
-                    ctx.fillText(dayOfWeek === 6 ? "週六" : "週日", x.getPixelForTick(index), top + 15);
+                    ctx.fillText(dayOfWeek === 6 ? "SAT" : "SUN", x.getPixelForTick(index), top + 15);
                 }
             });
             ctx.restore();
@@ -164,6 +192,7 @@
     };
 
     function getWeatherEmoji(code) {
+        if (code === undefined || code === null) return ''; 
         if (code === 0) return '☀️'; 
         if (code <= 3) return '☁️'; 
         if (code <= 48) return '🌫️'; 
@@ -176,26 +205,23 @@
     }
 
     async function analyzeWeather() {
-        const threshold = parseFloat(document.getElementById('dropThreshold').value);
-        const windowDays = parseInt(document.getElementById('windowDays').value);
-        const lagMin = parseInt(document.getElementById('lagMin').value);
-        const lagMax = parseInt(document.getElementById('lagMax').value);
-        
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('statusBox').style.display = 'none';
-        document.getElementById('logWest').innerHTML = '';
-        document.getElementById('logEast').innerHTML = '';
+        const loadingEl = document.getElementById('loading');
+        loadingEl.style.display = 'block';
 
         try {
             const keys = Object.keys(locations);
             const promises = keys.map(key => {
                 const loc = locations[key];
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=temperature_2m_min,weathercode&timezone=auto&forecast_days=16`;
-                return fetch(url).then(res => res.json());
+                
+                return fetch(url).then(res => {
+                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                    return res.json();
+                });
             });
 
             const results = await Promise.all(promises);
-            document.getElementById('loading').style.display = 'none';
+            loadingEl.style.display = 'none';
 
             const weatherData = {};
             const weatherCodes = {};
@@ -207,88 +233,62 @@
                 weatherCodes[key] = results[index].daily.weathercode;
             });
 
-            drawIntegratedChart(displayLabels, rawDates, weatherData, weatherCodes);
-
-            let totalAlerts = 0;
-            const alertsWest = runPathLogic('ham', 'xia', 'wuh', 'tpe', weatherData, displayLabels, threshold, windowDays, lagMin, lagMax);
-            const alertsEast = runPathLogic('yak', 'bei', 'sha', 'tpe', weatherData, displayLabels, threshold, windowDays, lagMin, lagMax);
-
-            renderLogs('logWest', alertsWest, 'log-west');
-            renderLogs('logEast', alertsEast, 'log-east');
+            // --- 演算法 V5 (同上個版本) ---
+            const predictedTaipei = [];
+            const shaData = weatherData['sha'];
+            const wuhData = weatherData['wuh'];
+            const beiData = weatherData['bei']; 
+            const xiaData = weatherData['xia'];
             
-            totalAlerts = alertsWest.length + alertsEast.length;
-            const statusBox = document.getElementById('statusBox');
-            if (totalAlerts > 0) {
-                statusBox.className = 'alert-box alert-danger';
-                statusBox.innerHTML = `⚠️ 偵測到 <b>${totalAlerts}</b> 個符合條件的寒流降溫訊號。`;
-                statusBox.style.display = 'block';
-            } else {
-                statusBox.className = 'alert-box alert-success';
-                statusBox.innerHTML = `✅ 未來 16 天內，東西兩路均未偵測到顯著連鎖降溫訊號。`;
-                statusBox.style.display = 'block';
+            const WEIGHT_SHA = 0.6;
+            const WEIGHT_WUH = 0.4;
+            const FIXED_BASE_OFFSET = 8; 
+            const TEMP_CAP_START = 18; 
+            const SURGE_THRESHOLD = 6; 
+
+            for(let i = 0; i < shaData.length; i++) {
+                if (i < 2) {
+                    predictedTaipei.push(null);
+                } else {
+                    const prevShaAvg = (shaData[i-1] + shaData[i-2]) / 2;
+                    const prevWuhAvg = (wuhData[i-1] + wuhData[i-2]) / 2;
+                    const sourceTemp = (prevShaAvg * WEIGHT_SHA) + (prevWuhAvg * WEIGHT_WUH);
+                    
+                    let currentOffset = FIXED_BASE_OFFSET;
+                    if (i >= 3) {
+                        const dropBei = beiData[i-3] - beiData[i-1];
+                        const dropXia = xiaData[i-3] - xiaData[i-1];
+                        if (dropBei > SURGE_THRESHOLD || dropXia > SURGE_THRESHOLD) {
+                            currentOffset *= 0.8; 
+                        }
+                    }
+
+                    let pred = sourceTemp + currentOffset;
+                    if (pred > TEMP_CAP_START) {
+                        const excess = pred - TEMP_CAP_START;
+                        pred = TEMP_CAP_START + (excess * 0.5);
+                    }
+                    predictedTaipei.push(pred);
+                }
             }
+
+            drawIntegratedChart(displayLabels, rawDates, weatherData, weatherCodes, predictedTaipei);
 
         } catch (error) {
             console.error(error);
-            document.getElementById('loading').style.display = 'none';
+            loadingEl.style.display = 'none';
+            alert("⚠️ CONNECTION ERROR: " + error.message);
         }
     }
 
-    function runPathLogic(idA, idB, idC, idD, dataMap, dates, threshold, windowDays, lagMin, lagMax) {
-        let alerts = [];
-        const dataA = dataMap[idA];
-        const dataB = dataMap[idB];
-        const dataC = dataMap[idC];
-        const maxScanDay = dataA.length - windowDays - (lagMax * 2);
-
-        for (let i = 0; i < maxScanDay; i++) {
-            let dropA = dataA[i] - dataA[i + windowDays];
-            if (dropA >= threshold) {
-                for (let d1 = lagMin; d1 <= lagMax; d1++) {
-                    let idxB = i + d1;
-                    if (idxB + windowDays >= dataB.length) continue;
-                    let dropB = dataB[idxB] - dataB[idxB + windowDays];
-                    if (dropB >= threshold) {
-                        for (let d2 = lagMin; d2 <= lagMax; d2++) {
-                            let idxC = idxB + d2;
-                            if (idxC + windowDays >= dataC.length) continue;
-                            let dropC = dataC[idxC] - dataC[idxC + windowDays];
-                            if (dropC >= threshold) {
-                                let dateA = dates[i];
-                                let dateC = dates[idxC];
-                                let id = `${dateA}-${dateC}`;
-                                if (!alerts.some(a => a.id === id)) {
-                                    alerts.push({
-                                        id: id,
-                                        msg: `<b>${dateA}</b> 起始:<br>源頭降 ${dropA.toFixed(1)}° ➔ 南方(${dateC})降 ${dropC.toFixed(1)}°`
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return alerts;
-    }
-
-    function renderLogs(elementId, alerts, cssClass) {
-        const container = document.getElementById(elementId);
-        if (alerts.length === 0) {
-            container.innerHTML = '<div style="color:#999; font-style:italic;">無訊號</div>';
-            return;
-        }
-        alerts.forEach(a => {
-            const d = document.createElement('div');
-            d.className = `log-item ${cssClass}`;
-            d.innerHTML = a.msg;
-            container.appendChild(d);
-        });
-    }
-
-    function drawIntegratedChart(labels, rawDates, tempMap, codeMap) {
+    function drawIntegratedChart(labels, rawDates, tempMap, codeMap, predTaipeiData) {
         const ctx = document.getElementById('weatherChart').getContext('2d');
         if (myChart) myChart.destroy();
+
+        // 輔助變數：格線與文字顏色 (Dark Mode)
+        const gridColor = 'rgba(255, 255, 255, 0.1)';
+        const textColor = '#ccc';
+        const titleColor = '#eee';
 
         const createDataset = (key, axisId) => ({
             label: locations[key].name,
@@ -302,8 +302,8 @@
                 align: 'top',
                 anchor: 'center',
                 offset: 2,
-                color: '#333',
-                font: { size: 12, weight: 'bold', family: 'Segoe UI Emoji' },
+                color: '#fff', // 數據標籤改為全白
+                font: { size: 11, weight: 'bold' },
                 formatter: (value, ctx) => {
                     const code = codeMap[key][ctx.dataIndex];
                     return Math.round(value) + '°\n' + getWeatherEmoji(code);
@@ -312,24 +312,38 @@
             }
         });
 
-        // 4 層堆疊，每層都使用同一個 'left' Y 軸設定
-        // stackWeight: 1 確保四層高度平均
-        
         const datasets = [
-            // 第一層 (Row 1): 哈密 vs 雅庫次克
             createDataset('ham', 'yRow1'),
             createDataset('yak', 'yRow1'),
-
-            // 第二層 (Row 2): 西安 vs 北京
             createDataset('xia', 'yRow2'),
             createDataset('bei', 'yRow2'),
-
-            // 第三層 (Row 3): 武漢 vs 上海
             createDataset('wuh', 'yRow3'),
             createDataset('sha', 'yRow3'),
-
-            // 第四層 (Row 4): 台北
-            createDataset('tpe', 'yRow4')
+            createDataset('tpe', 'yRow4'),
+            
+            // 虛線推演
+            {
+                label: '台北 (趨勢推演)',
+                data: predTaipeiData,
+                borderColor: '#FF4081', // 亮洋紅 (Neon Pink)
+                backgroundColor: '#FF4081',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                yAxisID: 'yRow4',
+                datalabels: {
+                    align: 'bottom',
+                    anchor: 'center',
+                    offset: 6,
+                    color: '#FF4081',
+                    font: { size: 11, style: 'italic', weight: 'bold' },
+                    formatter: (value) => {
+                        if(value === null) return '';
+                        return Math.round(value) + '°';
+                    }
+                }
+            }
         ];
 
         myChart = new Chart(ctx, {
@@ -342,49 +356,61 @@
                 layout: { padding: { top: 20, bottom: 10, left: 10, right: 10 } },
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    x: { grid: { drawOnChartArea: false } },
-                    
-                    // 這裡定義 4 個分層的 Y 軸
-                    // 注意：不再有 yEast1 (右軸)，全部靠左對齊
+                    x: { 
+                        grid: { display: false },
+                        ticks: { color: textColor }
+                    },
                     yRow1: {
                         type: 'linear', position: 'left',
                         stack: 'mainStack', stackWeight: 1, 
-                        title: { display: true, text: '哈密 vs 雅庫次克', color: '#444', font: {weight:'bold'} },
-                        grid: { color: '#eee' }
+                        title: { display: true, text: '哈密 vs 雅庫次克', color: titleColor, font: {weight:'bold'} },
+                        grid: { color: gridColor }, // 淺色格線
+                        ticks: { color: textColor }
                     },
                     yRow2: {
                         type: 'linear', position: 'left',
                         stack: 'mainStack', stackWeight: 1,
-                        title: { display: true, text: '西安 vs 北京', color: '#444', font: {weight:'bold'} },
-                        grid: { color: '#eee' },
-                        offset: true
+                        title: { display: true, text: '西安 vs 北京', color: titleColor, font: {weight:'bold'} },
+                        grid: { color: gridColor },
+                        offset: true,
+                        ticks: { color: textColor }
                     },
                     yRow3: {
                         type: 'linear', position: 'left',
                         stack: 'mainStack', stackWeight: 1,
-                        title: { display: true, text: '武漢 vs 上海', color: '#444', font: {weight:'bold'} },
-                        grid: { color: '#eee' },
-                        offset: true
+                        title: { display: true, text: '武漢 vs 上海', color: titleColor, font: {weight:'bold'} },
+                        grid: { color: gridColor },
+                        offset: true,
+                        ticks: { color: textColor }
                     },
                     yRow4: {
                         type: 'linear', position: 'left',
                         stack: 'mainStack', stackWeight: 1,
-                        title: { display: true, text: '台北', color: '#D32F2F', font: {weight:'bold'} },
-                        grid: { color: '#eee' },
-                        offset: true
+                        title: { display: true, text: '台北 (預報 vs 推演)', color: '#FF5252', font: {weight:'bold'} },
+                        grid: { color: gridColor },
+                        offset: true,
+                        ticks: { color: textColor }
                     }
                 },
                 plugins: {
                     legend: { 
                         display: true, 
                         position: 'top',
-                        labels: { usePointStyle: true, padding: 15 }
+                        labels: { 
+                            usePointStyle: true, 
+                            padding: 15, 
+                            font: {family: 'Segoe UI'},
+                            color: textColor // 圖例文字改淺色
+                        }
                     },
                     tooltip: { enabled: true }
                 }
             }
         });
     }
+    
+    // 自動執行
+    window.onload = analyzeWeather;
 </script>
 
 </body>
