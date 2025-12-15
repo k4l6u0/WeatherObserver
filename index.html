@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>會變冷嘸？ BUILD 251212ab</title>
+    <title>會變冷嘸？ BUILD 251215ad</title>
     <!-- 使用穩定的 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -28,7 +28,7 @@
             border: 1px solid #333;
         }
         
-        /* 標題區 - 冰霜漸層 */
+        /* 標題區 */
         header { 
             background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); 
             padding: 25px 35px; 
@@ -67,7 +67,7 @@
             line-height: 1.1;
         }
         
-        /* 版號 (折行顯示) */
+        /* 版號 */
         .build-tag-block { 
             font-family: 'Consolas', monospace;
             font-size: 0.8rem; 
@@ -137,7 +137,7 @@
     <header>
         <div class="header-left">
             <h1>會變冷嘸？</h1>
-            <span class="build-tag-block">BUILD 251212ab</span>
+            <span class="build-tag-block">BUILD 251215ad</span>
             
             <div class="hud-display">
                 <div class="hud-item"><span class="dot" style="background:#B388FF"></span> 西路</div>
@@ -161,7 +161,7 @@
             <input type="number" id="lagMax" value="3">
         </div>
 
-        <div id="loading" class="loading">🛰️ SCANNING ATMOSPHERE...</div>
+        <div id="loading" class="loading">🛰️ ANCHORING TO CURRENT DATA...</div>
 
         <div class="chart-container">
             <canvas id="weatherChart"></canvas>
@@ -170,9 +170,11 @@
         <footer>
             <h3>System Logs</h3>
             <ul>
-                <li><span class="version-tag">251212ab</span> <b>Typos Fix</b>：修正標題文字為「會變冷嘸？」，更貼近台語語感。</li>
-                <li><span class="version-tag">251212aa</span> <b>Identity Update</b>：更名並採用 Dark Mode 介面；版號格式更新為 YYMMDDaa。</li>
-                <li><span class="version-tag">25121208</span> 演算法回滾至固定基數 (+8°C) 與高溫抑制 (Cap)。</li>
+                <li><span class="version-tag">251215ad</span> <b>今日錨定 + 物理補償模型 (Anchored Physics Model)</b>：
+                    <br>1. <b>零點校正</b>：演算法直接鎖定「今日」台北與源頭的真實溫差 (`GAP = TPE[0] - Source[0]`)，消除起始誤差。
+                    <br>2. <b>冷吸熱補償</b>：根據熱力學特性，當源頭氣溫低於 10°C 時，自動增加海洋加熱補償係數 (`(10-Source)*0.2`)。這確保了即使源頭低溫，推演線也會因為合理的變性增溫而貼近真實預報，不再無故崩跌。
+                </li>
+                <li><span class="version-tag">251215ac</span> 修正相對趨勢傳導的漂移問題。</li>
             </ul>
         </footer>
     </div>
@@ -262,41 +264,55 @@
                 weatherCodes[key] = results[index].daily.weathercode;
             });
 
-            // --- 演算法 V5: Rollback & Cap ---
+            // --- 演算法 V10: 今日錨定 + 物理補償 ---
             const predictedTaipei = [];
             const shaData = weatherData['sha'];
             const wuhData = weatherData['wuh'];
-            const beiData = weatherData['bei']; 
-            const xiaData = weatherData['xia'];
+            const tpeData = weatherData['tpe']; 
             
-            const WEIGHT_SHA = 0.6;
-            const WEIGHT_WUH = 0.4;
-            const FIXED_BASE_OFFSET = 8; 
-            const TEMP_CAP_START = 18; 
-            const SURGE_THRESHOLD = 6; 
+            const WEIGHT_SHA = 0.7; // 東路權重稍高
+            const WEIGHT_WUH = 0.3;
 
+            // 1. 計算 Day 0 的基準溫差 (Anchor Gap)
+            // 這代表「今天」環境下的實際溫差，包含海洋、地形、風向的總和效應
+            const todaySource = (shaData[0] * WEIGHT_SHA) + (wuhData[0] * WEIGHT_WUH);
+            const anchorGap = tpeData[0] - todaySource;
+
+            // 2. 進行推演
             for(let i = 0; i < shaData.length; i++) {
-                if (i < 2) {
-                    predictedTaipei.push(null);
+                // Day 0 直接使用真實值
+                if (i === 0) {
+                    predictedTaipei.push(tpeData[0]); 
                 } else {
-                    const prevShaAvg = (shaData[i-1] + shaData[i-2]) / 2;
-                    const prevWuhAvg = (wuhData[i-1] + wuhData[i-2]) / 2;
-                    const sourceTemp = (prevShaAvg * WEIGHT_SHA) + (prevWuhAvg * WEIGHT_WUH);
+                    // 計算源頭溫度 (Lag 1 day: 用昨天的源頭推算今天的台北)
+                    const prevSha = shaData[i-1];
+                    const prevWuh = wuhData[i-1];
+                    const sourceTemp = (prevSha * WEIGHT_SHA) + (prevWuh * WEIGHT_WUH);
                     
-                    let currentOffset = FIXED_BASE_OFFSET;
-                    if (i >= 3) {
-                        const dropBei = beiData[i-3] - beiData[i-1];
-                        const dropXia = xiaData[i-3] - xiaData[i-1];
-                        if (dropBei > SURGE_THRESHOLD || dropXia > SURGE_THRESHOLD) {
-                            currentOffset *= 0.8; 
-                        }
+                    // 應用基準溫差
+                    let gap = anchorGap;
+
+                    // 物理補償 (Physics Compensation)
+                    // 冷空氣越冷，經過暖海面時，變性(升溫)幅度越大
+                    // 以 10度為基準，每低 1度，額外增加 0.2度 的升溫補償
+                    if (sourceTemp < 10) {
+                        gap += (10 - sourceTemp) * 0.2;
+                    }
+                    
+                    // 暖區補償
+                    // 如果源頭很暖 (>20)，海洋調節變弱
+                    if (sourceTemp > 20) {
+                        gap -= (sourceTemp - 20) * 0.3;
                     }
 
-                    let pred = sourceTemp + currentOffset;
-                    if (pred > TEMP_CAP_START) {
-                        const excess = pred - TEMP_CAP_START;
-                        pred = TEMP_CAP_START + (excess * 0.5);
+                    let pred = sourceTemp + gap;
+
+                    // 慣性平滑 (Smoothing)
+                    // 混合 20% 昨日預測值，避免線條鋸齒
+                    if (predictedTaipei[i-1] !== null) {
+                        pred = (pred * 0.8) + (predictedTaipei[i-1] * 0.2);
                     }
+
                     predictedTaipei.push(pred);
                 }
             }
@@ -314,7 +330,6 @@
         const ctx = document.getElementById('weatherChart').getContext('2d');
         if (myChart) myChart.destroy();
 
-        // Dark Mode Colors
         const gridColor = 'rgba(255, 255, 255, 0.1)';
         const textColor = '#ccc';
         const titleColor = '#eee';
