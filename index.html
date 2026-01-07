@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>會變冷嘸？ BUILD 251216ah</title>
+    <title>會變冷嘸？ BUILD 260107ai (體感版)</title>
     <!-- 使用穩定的 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -12,7 +12,7 @@
         /* Dark Mode 全局設定 - 強制極黑 */
         body { 
             font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; 
-            background-color: #000000; /* 純黑 */
+            background-color: #000000; 
             color: #e0e0e0; 
             margin: 0; padding: 20px; 
         }
@@ -20,7 +20,7 @@
         .container { 
             max-width: 1200px; 
             margin: 0 auto; 
-            background: #0a0a0a; /* 極深灰，接近黑 */
+            background: #0a0a0a; 
             padding: 0; 
             border-radius: 16px; 
             box-shadow: 0 20px 50px rgba(255,255,255,0.05); 
@@ -30,7 +30,7 @@
         
         /* 標題區 */
         header { 
-            background: linear-gradient(135deg, #051937, #004d7a, #008793); 
+            background: linear-gradient(135deg, #2c3e50, #4ca1af); /* 改為稍微冷色調的藍綠漸層 */
             padding: 25px 35px; 
             color: white; 
             display: flex; 
@@ -55,8 +55,8 @@
 
         /* 左側標題區 */
         .header-left { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; }
-        .header-left h1 { margin: 0; font-size: 2.2rem; font-weight: 900; letter-spacing: 2px; color: #4fc3f7; text-shadow: 0 0 15px rgba(79, 195, 247, 0.4); }
-        .build-tag-block { font-family: monospace; font-size: 0.8rem; color: #0a0a0a; background: #ffeb3b; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-top: 8px; display: inline-block; }
+        .header-left h1 { margin: 0; font-size: 2.2rem; font-weight: 900; letter-spacing: 2px; color: #a8ff78; text-shadow: 0 0 15px rgba(168, 255, 120, 0.4); }
+        .build-tag-block { font-family: monospace; font-size: 0.8rem; color: #0a0a0a; background: #a8ff78; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-top: 8px; display: inline-block; }
         
         .hud-display { display: flex; gap: 15px; margin-top: 15px; font-size: 0.85rem; font-weight: 600; color: #999; }
         .hud-item { display: flex; align-items: center; gap: 6px; }
@@ -64,11 +64,11 @@
 
         .header-right { position: relative; z-index: 2; }
         .reload-btn {
-            background: rgba(79, 195, 247, 0.1); border: 1px solid rgba(79, 195, 247, 0.5); color: #4fc3f7;
+            background: rgba(168, 255, 120, 0.1); border: 1px solid rgba(168, 255, 120, 0.5); color: #a8ff78;
             padding: 10px 25px; border-radius: 30px; font-weight: bold; cursor: pointer;
             transition: all 0.3s ease; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;
         }
-        .reload-btn:hover { background: rgba(79, 195, 247, 0.2); box-shadow: 0 0 20px rgba(79, 195, 247, 0.4); transform: translateY(-2px); }
+        .reload-btn:hover { background: rgba(168, 255, 120, 0.2); box-shadow: 0 0 20px rgba(168, 255, 120, 0.4); transform: translateY(-2px); }
 
         .content-body { padding: 10px 25px 25px 25px; }
         
@@ -87,8 +87,8 @@
 <div class="container">
     <header>
         <div class="header-left">
-            <h1>會變冷嘸？</h1>
-            <span class="build-tag-block">BUILD 251216ah (Deep Dark Fix)</span>
+            <h1>會變冷嘸？ (體感版)</h1>
+            <span class="build-tag-block">BUILD 260107ai (Real Feel)</span>
             <div class="hud-display">
                 <div class="hud-item"><span class="dot" style="background:#B388FF; box-shadow: 0 0 5px #B388FF"></span> 西路</div>
                 <div class="hud-item"><span class="dot" style="background:#448AFF; box-shadow: 0 0 5px #448AFF"></span> 東路</div>
@@ -120,10 +120,12 @@
         <footer>
             <h3>System Logs</h3>
             <ul>
-                <li><span class="version-tag">251216ah</span> <b>Hotfix</b>：
-                    <br>1. <b>深黑模式回歸</b>：修正背景色樣式，恢復 #000 / #0a0a0a 的高對比配置。
-                    <br>2. <b>雙軸修復</b>：修正頂部日期軸的配置錯誤，確保上下日期都能正確顯示。
+                <li><span class="version-tag">260107ai</span> <b>全體感模式 (Apparent Temp Mode)</b>：
+                    <br>1. <b>數據源切換</b>：所有城市氣溫數據改為讀取 <b>Apparent Minimum Temperature (最低體感)</b>。這包含了濕度、風速與輻射冷卻的綜合影響。
+                    <br>2. <b>數值預期</b>：體感溫度通常比實際氣溫低 2~5 度（視風速而定），尤其在寒流期間差異會更顯著，此為正常現象。
                 </li>
+                <li><span class="version-tag">251216ah</span> 雙軸修復+極黑背景。</li>
+                <li><span class="version-tag">251215ad</span> 演算法核心：今日錨定 + 物理補償模型 (V10)。</li>
             </ul>
         </footer>
     </div>
@@ -174,7 +176,7 @@
                     // 極淡白，融入深黑背景
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.03)'; 
                     ctx.fillRect(xPos, top, width, height);
-                    // 週末文字提示，放在稍微下面一點
+                    // 週末文字提示
                     ctx.fillStyle = '#444';
                     ctx.font = 'bold 10px "Segoe UI"';
                     ctx.textAlign = 'center';
@@ -205,7 +207,8 @@
             const keys = Object.keys(locations);
             const promises = keys.map(key => {
                 const loc = locations[key];
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=temperature_2m_min,weathercode&timezone=auto&forecast_days=16`;
+                // 關鍵修改：改抓取 apparent_temperature_min (體感最低溫)
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=apparent_temperature_min,weathercode&timezone=auto&forecast_days=16`;
                 return fetch(url).then(res => {
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return res.json();
@@ -221,11 +224,13 @@
             const displayLabels = rawDates.map(date => date.substring(5).replace('-', '/'));
 
             keys.forEach((key, index) => {
-                weatherData[key] = results[index].daily.temperature_2m_min;
+                // 這裡存入的是體感溫度
+                weatherData[key] = results[index].daily.apparent_temperature_min;
                 weatherCodes[key] = results[index].daily.weathercode;
             });
 
-            // --- 演算法 V10 ---
+            // --- 演算法 V10: 今日錨定 + 物理補償 ---
+            // 邏輯不變，但因為輸入數據變成了體感，輸出自然也是體感推演
             const predictedTaipei = [];
             const shaData = weatherData['sha'];
             const wuhData = weatherData['wuh'];
@@ -273,7 +278,6 @@
         const ctx = document.getElementById('weatherChart').getContext('2d');
         if (myChart) myChart.destroy();
 
-        // Dark Mode Colors
         const gridColor = 'rgba(255, 255, 255, 0.08)';
         const textColor = '#888';
         const titleColor = '#ccc';
@@ -310,10 +314,10 @@
             createDataset('wuh', 'yRow3', 12),
             createDataset('sha', 'yRow3', 12),
             
-            // 台北 (官方預報) - 15px
+            // 台北 (官方預報 - 體感)
             createDataset('tpe', 'yRow4', 15),
             
-            // 台北 (趨勢推演) - 15px
+            // 台北 (趨勢推演 - 體感)
             {
                 label: '台北 (趨勢推演)',
                 data: predTaipeiData,
@@ -351,7 +355,6 @@
                 interaction: { mode: 'index', intersect: false },
                 scales: {
                     x: { 
-                        position: 'bottom',
                         grid: { display: false },
                         ticks: { color: textColor, font: { size: 11 } }
                     },
@@ -363,9 +366,7 @@
                             color: textColor,
                             font: { size: 11 },
                             callback: function(value, index) {
-                                // 取得 MM/DD
                                 const label = this.getLabelForValue(value);
-                                // 取得星期幾
                                 const dateStr = rawDates[index];
                                 const dayMap = ['日', '一', '二', '三', '四', '五', '六'];
                                 const day = new Date(dateStr).getDay();
@@ -399,7 +400,7 @@
                     yRow4: {
                         type: 'linear', position: 'left',
                         stack: 'mainStack', stackWeight: 1,
-                        title: { display: true, text: '台北 (預報 vs 推演)', color: '#FF5252', font: {weight:'bold'} },
+                        title: { display: true, text: '台北 (體感)', color: '#FF5252', font: {weight:'bold'} },
                         grid: { color: gridColor },
                         offset: true,
                         ticks: { color: textColor }
